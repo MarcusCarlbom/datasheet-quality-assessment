@@ -1,0 +1,10 @@
+dataset,source,contamination_pct
+imdb,huggingface,0.5
+blood_transfusion,openml,24.4
+adult,openml,0.16
+wine_quality_white,openml,27.4
+phoneme,openml,0.6
+spam,openml,8.2
+letter_recognition,uci,8.1
+breast_cancer_wisconsin,uci,2.1
+iris,uci,3.3

@@ -1,0 +1,4 @@
+repository,num_datasets,avg_missing_rate_pct,avg_duplicate_rate_pct,contamination_count,contamination_pct,ambiguous_labels_count,ambiguous_labels_pct,constant_features_count,constant_features_pct,excessive_missing_count,excessive_missing_pct,empty_rows_count,empty_rows_pct,high_duplicates_count,high_duplicates_pct,mixed_types_count,mixed_types_pct,duplicate_columns_count,duplicate_columns_pct,enum_as_numeric_count,enum_as_numeric_pct,unnormalized_count,unnormalized_pct
+huggingface,20,0.0,0.1,2,10.0,4,20.0,2,10.0,0,0.0,0,0.0,0,0.0,0,0.0,0,0.0,0,0.0,6,30.0
+uci,20,0.0,0.51,6,30.0,0,0.0,2,10.0,0,0.0,0,0.0,1,5.0,0,0.0,0,0.0,7,35.0,4,20.0
+openml,20,2.18,4.0,10,50.0,0,0.0,2,10.0,2,10.0,0,0.0,5,25.0,0,0.0,2,10.0,6,30.0,10,50.0
