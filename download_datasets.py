@@ -1,8 +1,3 @@
-"""
-download_datasets.py - Downloads 10 popular datasets from each source
-Handles train/test splits properly for contamination checking
-"""
-
 from datasets import load_dataset
 from sklearn.datasets import fetch_openml
 from sklearn.model_selection import train_test_split
@@ -12,22 +7,15 @@ from pathlib import Path
 class DatasetDownloader:
     def __init__(self, base_path="./data"):
         self.base_path = Path(base_path)
-        # Create folder structure
         for source in ['huggingface', 'openml', 'uci']:
             (self.base_path / source).mkdir(parents=True, exist_ok=True)
     
     def download_huggingface_with_splits(self, dataset_name: str, 
                                         config: str = None,
                                         has_splits: bool = True):
-        """
-        Download HuggingFace dataset
-        has_splits: True if dataset has predefined train/test
-        config: Optional dataset configuration
-        """
         print(f"Downloading HuggingFace: {dataset_name}...")
         
         if has_splits:
-            # Download train and test separately
             try:
                 if config:
                     train = load_dataset(dataset_name, config, split="train")
@@ -39,7 +27,6 @@ class DatasetDownloader:
                 train_df = train.to_pandas()
                 test_df = test.to_pandas()
                 
-                # Save both splits
                 safe_name = dataset_name.replace('/', '_')
                 if config:
                     safe_name = f"{safe_name}_{config}"
@@ -54,7 +41,6 @@ class DatasetDownloader:
                 
             except Exception as e:
                 print(f"Failed to load splits: {e}")
-                print(f"Trying as single dataset...")
                 self._download_and_split_hf(dataset_name, config)
         else:
             self._download_and_split_hf(dataset_name, config)
@@ -68,7 +54,6 @@ class DatasetDownloader:
         
         df = dataset.to_pandas()
         
-        # Create 80/20 split
         train_df, test_df = train_test_split(
             df, test_size=0.2, random_state=42
         )
@@ -150,8 +135,6 @@ class DatasetDownloader:
 def main():
     downloader = DatasetDownloader()
     
-    print("DOWNLOADING 10 POPULAR DATASETS FROM EACH SOURCE")
-    
     print("\n--- HuggingFace Datasets (10) ---\n")
     
     downloader.download_huggingface_with_splits("imdb", has_splits=True)
@@ -228,21 +211,10 @@ def main():
         "dermatology"
     )
     
-    # ========================================================================
-    # SUMMARY
-    # ========================================================================
-    print("\n" + "="*80)
-    print("DOWNLOAD COMPLETE!")
-    print("="*80)
     print("\nDownloaded:")
-    print("  ✓ 10 HuggingFace datasets (text classification)")
-    print("  ✓ 10 OpenML datasets (tabular)")
-    print("  ✓ 10 UCI datasets (classic ML)")
-    print("\nTotal: 30 datasets × 2 splits = 60 files")
-    print("\nNext steps:")
-    print("  1. Run: python data_validator.py")
-    print("  2. Run: python visualize_results.py")
-    print("\n")
+    print("10 HuggingFace datasets (text classification)")
+    print("10 OpenML datasets (tabular)")
+    print("10 UCI datasets (classic ML)")
 
 
 if __name__ == "__main__":

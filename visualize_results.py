@@ -1,370 +1,394 @@
 """
 visualize_results.py
-Visualize data quality validation results from CSV files
+Concise visualization focused on most important insights
 """
 
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+from pathlib import Path
 
-# Set style
 plt.style.use('seaborn-v0_8-darkgrid')
 sns.set_palette("husl")
 
-def visualize_repository_comparison(csv_path: str):
-    """
-    Visualize repository_comparison.csv
-    Shows which repositories have which problems
-    """
-    df = pd.read_csv(csv_path)
+REPO_COLORS = {
+    'huggingface': '#FF9D00',
+    'openml': '#4285F4', 
+    'uci': '#34A853'
+}
+
+PROBLEM_TYPES = {
+    'has_train_test_contamination': {
+        'title': 'Train/Test Contamination',
+        'color': "#DC113A"
+    },
+    'has_ambiguous_labels': {
+        'title': 'Ambiguous Labels',
+        'color': "#E95241"
+    },
+    'constant_features': {
+        'title': 'Constant Features',
+        'color': "#FF7F7F"
+    },
+    'excessive_missing_cols': {
+        'title': 'Excessive Missing Values',
+        'color': '#FF8C00'
+    },
+    'mixed_types_cols': {
+        'title': 'Mixed Types',
+        'color': '#FF8C00'
+    },
+    'has_duplicate_rows': {
+        'title': 'Duplicate Rows',
+        'color': '#FF8C00'
+    },
+    'has_empty_rows': {
+        'title': 'Empty Rows',
+        'color': "#FFCC02"
+    },
+    'duplicate_columns': {
+        'title': 'Duplicate Columns',
+        'color': "#00FF6E"
+    },
+    'number_as_string': {
+        'title': 'Numbers as Strings',
+        'color': "#0099FF"
+    },
+    'enum_as_numeric': {
+        'title': 'Categorical as Integers',
+        'color': "#0099FF"
+    },
+    'unnormalized_features': {
+        'title': 'Unnormalized Features',
+        'color': "#00A6FF"
+    },
+    'tailed_distributions': {
+        'title': 'Skewed Distributions',
+        'color': "#0099FF"
+    }
+}
+
+
+def load_summary_data(filepath: str = "quality_summary.csv") -> tuple:
+    if not Path(filepath).exists():
+        raise FileNotFoundError(f"Cannot find {filepath}")
     
-    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-    fig.suptitle('Repository Quality Comparison', fontsize=16, fontweight='bold')
+    df = pd.read_csv(filepath)
     
-    # 1. Critical Issues Overview (TOP LEFT)
-    ax1 = axes[0, 0]
-    critical_cols = ['contamination_pct', 'ambiguous_labels_pct', 
-                     'constant_features_pct', 'excessive_missing_pct']
-    critical_data = df[['repository'] + critical_cols].set_index('repository')
+    contam_df = None
+    contam_path = "contamination_details.csv"
+    if Path(contam_path).exists():
+        contam_df = pd.read_csv(contam_path)
     
-    critical_data.plot(kind='bar', ax=ax1, width=0.8)
-    ax1.set_title('Critical Issues (% of datasets affected)', fontsize=12, fontweight='bold')
-    ax1.set_ylabel('Percentage of Datasets (%)')
-    ax1.set_xlabel('Repository')
-    ax1.legend(['Contamination', 'Ambiguous Labels', 'Constant Features', 'Excessive Missing'],
-               loc='upper left', fontsize=9)
-    ax1.set_xticklabels(df['repository'], rotation=0)
+    return df, contam_df
+
+
+def create_critical_problem_viz(df: pd.DataFrame, problem_col: str, problem_info: dict, 
+                                output_dir: str = "./visualizations", contam_df=None):
+    output_path = Path(output_dir)
+    output_path.mkdir(exist_ok=True)
+    
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    fig.suptitle(f"{problem_info['title']}", fontsize=16, fontweight='bold', color=problem_info['color'])
+    
+    is_boolean = df[problem_col].max() <= 1
+    is_contamination = problem_col == 'has_train_test_contamination' and contam_df is not None
+    
+    ax1 = axes[0]
+    if is_boolean:
+        prevalence = df.groupby('source')[problem_col].mean() * 100
+        total_affected = df.groupby('source')[problem_col].sum()
+    else:
+        prevalence = df.groupby('source')[problem_col].apply(lambda x: (x > 0).sum() / len(x) * 100)
+        total_affected = df.groupby('source')[problem_col].apply(lambda x: (x > 0).sum())
+    
+    colors = [REPO_COLORS.get(repo, '#888888') for repo in prevalence.index]
+    bars = ax1.bar(prevalence.index, prevalence.values, color=colors, width=0.6, alpha=0.8)
+    ax1.set_ylabel('% of Datasets Affected', fontsize=11, fontweight='bold')
+    ax1.set_title('Repository Comparison', fontsize=12, fontweight='bold')
+    ax1.set_ylim(0, max(prevalence.values) * 1.2 if prevalence.values.max() > 0 else 10)
     ax1.grid(axis='y', alpha=0.3)
     
-    # 2. Data Quality Metrics (TOP RIGHT)
-    ax2 = axes[0, 1]
-    quality_cols = ['high_duplicates_pct', 'mixed_types_pct', 'duplicate_columns_pct']
-    quality_data = df[['repository'] + quality_cols].set_index('repository')
+    for bar, repo in zip(bars, prevalence.index):
+        height = bar.get_height()
+        count = int(total_affected[repo])
+        ax1.text(bar.get_x() + bar.get_width()/2., height,
+                f'{height:.1f}%\n({count})', ha='center', va='bottom', 
+                fontweight='bold', fontsize=9)
     
-    quality_data.plot(kind='bar', ax=ax2, width=0.8)
-    ax2.set_title('Data Quality Issues (% of datasets affected)', fontsize=12, fontweight='bold')
-    ax2.set_ylabel('Percentage of Datasets (%)')
-    ax2.set_xlabel('Repository')
-    ax2.legend(['High Duplicates', 'Mixed Types', 'Duplicate Columns'],
-               loc='upper left', fontsize=9)
-    ax2.set_xticklabels(df['repository'], rotation=0)
-    ax2.grid(axis='y', alpha=0.3)
-    
-    # 3. Representation Issues (BOTTOM LEFT)
-    ax3 = axes[1, 0]
-    repr_cols = ['enum_as_numeric_pct', 'unnormalized_pct']
-    repr_data = df[['repository'] + repr_cols].set_index('repository')
-    
-    repr_data.plot(kind='bar', ax=ax3, width=0.8)
-    ax3.set_title('Representation Issues (% of datasets affected)', fontsize=12, fontweight='bold')
-    ax3.set_ylabel('Percentage of Datasets (%)')
-    ax3.set_xlabel('Repository')
-    ax3.legend(['Enum as Numeric', 'Unnormalized Features'],
-               loc='upper left', fontsize=9)
-    ax3.set_xticklabels(df['repository'], rotation=0)
-    ax3.grid(axis='y', alpha=0.3)
-    
-    # 4. Average Rates (BOTTOM RIGHT)
-    ax4 = axes[1, 1]
-    rate_cols = ['avg_missing_rate_pct', 'avg_duplicate_rate_pct']
-    rate_data = df[['repository'] + rate_cols].set_index('repository')
-    
-    rate_data.plot(kind='bar', ax=ax4, width=0.8)
-    ax4.set_title('Average Data Rates', fontsize=12, fontweight='bold')
-    ax4.set_ylabel('Percentage (%)')
-    ax4.set_xlabel('Repository')
-    ax4.legend(['Missing Rate', 'Duplicate Rate'],
-               loc='upper left', fontsize=9)
-    ax4.set_xticklabels(df['repository'], rotation=0)
-    ax4.grid(axis='y', alpha=0.3)
+    ax2 = axes[1]
+
+    if is_contamination:
+        worst_contam = contam_df.nlargest(10, 'contamination_pct').copy()
+        worst_contam['display_name'] = worst_contam['dataset']
+        
+        if len(worst_contam) > 0:
+            colors = [REPO_COLORS.get(repo, '#888888') for repo in worst_contam['source']]
+            y_pos = np.arange(len(worst_contam))
+            
+            ax2.barh(y_pos, worst_contam['contamination_pct'].values, color=colors, alpha=0.8)
+            
+            ax2.set_yticks(y_pos)
+            labels = []
+            for _, row in worst_contam.iterrows():
+                label = f"{row['display_name'][:30]}"
+                if len(row['display_name']) > 30:
+                    label += "..."
+                label += f" ({row['source']})"
+                labels.append(label)
+            ax2.set_yticklabels(labels, fontsize=9)
+            ax2.set_xlabel('Contamination %', fontsize=11, fontweight='bold')
+            ax2.set_title(f'Top {len(worst_contam)} Most Contaminated', fontsize=12, fontweight='bold')
+            ax2.grid(axis='x', alpha=0.3)
+            ax2.invert_yaxis()
+            
+            ax2.axvline(x=0.5, color='#90EE90', linestyle='--', alpha=0.5, linewidth=1.5, label='0.5%')
+            ax2.axvline(x=5, color='#FFD700', linestyle='--', alpha=0.5, linewidth=1.5, label='5%')
+            ax2.axvline(x=20, color='#DC143C', linestyle='--', alpha=0.5, linewidth=1.5, label='20%')
+            ax2.legend(fontsize=8, loc='lower right')
+            
+            for i, val in enumerate(worst_contam['contamination_pct'].values):
+                ax2.text(val + 0.5, i, f'{val:.1f}%', va='center', fontsize=9, fontweight='bold')
+        else:
+            ax2.text(0.5, 0.5, '✓ No contamination found', 
+                    ha='center', va='center', fontsize=14, color='green',
+                    fontweight='bold', transform=ax2.transAxes)
+            ax2.axis('off')
+    else:
+        if is_boolean:
+            worst = df[df[problem_col] == 1].copy()
+        else:
+            worst = df[df[problem_col] > 0].copy()
+        
+        worst['display_name'] = worst['dataset'].str.replace('_train$', '', regex=True).str.replace('_test$', '', regex=True)
+        
+        if is_boolean:
+            worst = worst.drop_duplicates(subset=['source', 'display_name'], keep='first')
+        else:
+            worst = worst.sort_values(problem_col, ascending=False).drop_duplicates(subset=['source', 'display_name'], keep='first')
+        
+        worst = worst.head(10)
+        
+        if len(worst) > 0:
+            colors = [REPO_COLORS.get(repo, '#888888') for repo in worst['source']]
+            y_pos = np.arange(len(worst))
+            
+            if is_boolean:
+                ax2.barh(y_pos, [1]*len(worst), color=colors, alpha=0.8)
+                ax2.set_xlim(0, 1.1)
+                ax2.set_xticks([])
+                ax2.spines['bottom'].set_visible(False)
+                ax2.set_xlabel('')
+            else:
+                ax2.barh(y_pos, worst[problem_col].values, color=colors, alpha=0.8)
+                ax2.set_xlabel('Count', fontsize=11, fontweight='bold')
+                
+                for i, val in enumerate(worst[problem_col].values):
+                    ax2.text(val + (max(worst[problem_col].values) * 0.02), i, 
+                            f'{int(val)}', va='center', fontsize=9, fontweight='bold')
+            
+            ax2.set_yticks(y_pos)
+            labels = []
+            for _, row in worst.iterrows():
+                label = f"{row['display_name'][:35]}"
+                if len(row['display_name']) > 35:
+                    label += "..."
+                label += f" ({row['source']})"
+                labels.append(label)
+            ax2.set_yticklabels(labels, fontsize=9)
+            ax2.set_title(f'Top {len(worst)} Affected Datasets', fontsize=12, fontweight='bold')
+            ax2.grid(axis='x', alpha=0.3)
+            ax2.invert_yaxis()
+        else:
+            ax2.text(0.5, 0.5, '✓ No datasets affected', 
+                    ha='center', va='center', fontsize=14, color='green',
+                    fontweight='bold', transform=ax2.transAxes)
+            ax2.axis('off')
     
     plt.tight_layout()
-    plt.savefig('repository_comparison.png', dpi=300, bbox_inches='tight')
-    print("✓ Saved: repository_comparison.png")
-    plt.show()
     
-    # Print summary table
-    print("\n" + "="*80)
-    print("REPOSITORY COMPARISON SUMMARY")
-    print("="*80)
-    print(df.to_string(index=False))
-    print("\n")
+    safe_filename = problem_col.replace('_', '-')
+    output_file = output_path / f"critical-{safe_filename}.png"
+    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    plt.close()
 
 
-def visualize_dataset_details(csv_path: str):
-    """
-    Visualize quality_summary_detailed.csv
-    Shows per-dataset quality metrics
-    """
-    df = pd.read_csv(csv_path)
+def create_high_priority_viz(df: pd.DataFrame, problem_col: str, problem_info: dict,
+                             output_dir: str = "./visualizations"):
+    output_path = Path(output_dir)
+    output_path.mkdir(exist_ok=True)
     
-    # Create figure with subplots
-    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-    fig.suptitle('Dataset Quality Details', fontsize=16, fontweight='bold')
+    fig, ax = plt.subplots(figsize=(10, 5))
+    fig.suptitle(f"{problem_info['title']}", fontsize=14, fontweight='bold', color=problem_info['color'])
     
-    # 1. Contamination by Dataset (TOP LEFT)
-    ax1 = axes[0, 0]
-    contaminated = df[df['contamination_pct'] > 0].sort_values('contamination_pct', ascending=False)
+    is_boolean = df[problem_col].max() <= 1
     
-    if len(contaminated) > 0:
-        # Color code: red >20%, orange 5-20%, yellow 1-5%, green <1%
-        colors = ['#d62728' if x >= 20 else '#ff7f0e' if x >= 5 else '#ffd700' if x >= 1 else '#2ca02c' 
-                  for x in contaminated['contamination_pct']]
-        
-        # Limit to top 20 worst cases
-        contaminated_display = contaminated.head(20)
-        colors_display = colors[:20]
-        
-        ax1.barh(contaminated_display['dataset'], contaminated_display['contamination_pct'], color=colors_display)
-        ax1.set_xlabel('Contamination (%)')
-        ax1.set_title(f'Train/Test Contamination by Dataset (Top {len(contaminated_display)} of {len(contaminated)})', 
-                     fontsize=12, fontweight='bold')
-        ax1.axvline(x=1, color='#ffd700', linestyle='--', alpha=0.5, label='1% threshold')
-        ax1.axvline(x=5, color='#ff7f0e', linestyle='--', alpha=0.5, label='5% threshold')
-        ax1.axvline(x=20, color='#d62728', linestyle='--', alpha=0.5, label='20% SEVERE')
-        ax1.legend(fontsize=8, loc='lower right')
-        ax1.grid(axis='x', alpha=0.3)
+    if is_boolean:
+        prevalence = df.groupby('source')[problem_col].mean() * 100
+        total_affected = df.groupby('source')[problem_col].sum()
     else:
-        ax1.text(0.5, 0.5, 'No contamination detected!', 
-                ha='center', va='center', fontsize=14, color='green', fontweight='bold')
-        ax1.set_xlim(0, 1)
-        ax1.set_ylim(0, 1)
-        ax1.axis('off')
+        prevalence = df.groupby('source')[problem_col].apply(lambda x: (x > 0).sum() / len(x) * 100)
+        total_affected = df.groupby('source')[problem_col].apply(lambda x: (x > 0).sum())
+        avg_severity = df[df[problem_col] > 0].groupby('source')[problem_col].mean()
     
-    # 2. Error/Warning/Info Distribution (TOP RIGHT)
-    ax2 = axes[0, 1]
-    severity_cols = ['errors', 'warnings', 'infos']
-    severity_data = df.groupby('source')[severity_cols].sum()
+    colors = [REPO_COLORS.get(repo, '#888888') for repo in prevalence.index]
+    bars = ax.bar(prevalence.index, prevalence.values, color=colors, width=0.6, alpha=0.8)
     
-    severity_data.plot(kind='bar', stacked=True, ax=ax2, 
-                      color=['#d62728', '#ff7f0e', '#1f77b4'], width=0.6)
-    ax2.set_title('Issue Severity by Repository', fontsize=12, fontweight='bold')
-    ax2.set_ylabel('Count')
-    ax2.set_xlabel('Repository')
-    ax2.legend(['Errors', 'Warnings', 'Info'], loc='upper left', fontsize=9)
-    ax2.set_xticklabels(severity_data.index, rotation=0)
-    ax2.grid(axis='y', alpha=0.3)
+    ax.set_ylabel('% of Datasets Affected', fontsize=11, fontweight='bold')
+    ax.set_xlabel('Repository', fontsize=11, fontweight='bold')
+    ax.set_ylim(0, max(prevalence.values) * 1.25 if prevalence.values.max() > 0 else 10)
+    ax.grid(axis='y', alpha=0.3)
     
-    # 3. Missing & Duplicate Rates (BOTTOM LEFT)
-    ax3 = axes[1, 0]
-    
-    # Create scatter plot
-    for source in df['source'].unique():
-        source_df = df[df['source'] == source]
-        ax3.scatter(source_df['missing_rate_pct'], source_df['duplicate_rate_pct'], 
-                   label=source, s=100, alpha=0.6)
-    
-    ax3.set_xlabel('Missing Rate (%)', fontsize=10)
-    ax3.set_ylabel('Duplicate Rate (%)', fontsize=10)
-    ax3.set_title('Missing vs Duplicate Rates', fontsize=12, fontweight='bold')
-    ax3.legend(title='Repository', fontsize=9)
-    ax3.grid(True, alpha=0.3)
-    
-    # Add quadrant lines
-    ax3.axhline(y=0.5, color='gray', linestyle='--', alpha=0.3)
-    ax3.axvline(x=0.5, color='gray', linestyle='--', alpha=0.3)
-    
-    # 4. Feature Issues Heatmap (BOTTOM RIGHT)
-    ax4 = axes[1, 1]
-    
-    # Select feature issue columns
-    feature_cols = ['enum_as_numeric_features', 'unnormalized_features', 
-                   'constant_features', 'mixed_types_columns']
-    heatmap_data = df[['dataset', 'source'] + feature_cols].copy()
-    
-    # Only show datasets with issues
-    heatmap_data['total_issues'] = heatmap_data[feature_cols].sum(axis=1)
-    heatmap_data = heatmap_data[heatmap_data['total_issues'] > 0]
-    
-    if len(heatmap_data) > 0:
-        # Limit to top 15 datasets with most issues for readability
-        heatmap_data = heatmap_data.nlargest(15, 'total_issues')
-        heatmap_display = heatmap_data[feature_cols].set_index(heatmap_data['dataset']).T
+    for bar, repo in zip(bars, prevalence.index):
+        height = bar.get_height()
+        count = int(total_affected[repo])
+        if is_boolean:
+            label = f'{height:.1f}%\n({count} datasets)'
+        else:
+            avg = avg_severity.get(repo, 0)
+            label = f'{height:.1f}%\n({count} datasets)\navg: {avg:.1f}'
         
-        sns.heatmap(heatmap_display, annot=True, fmt='g', cmap='YlOrRd', 
-                   cbar_kws={'label': 'Count'}, ax=ax4, linewidths=0.5)
-        ax4.set_title(f'Feature Issues (Top {len(heatmap_data)} Datasets)', fontsize=12, fontweight='bold')
-        ax4.set_xlabel('Dataset')
-        ax4.set_ylabel('Issue Type')
-    else:
-        ax4.text(0.5, 0.5, 'No feature issues detected!', 
-                ha='center', va='center', fontsize=14, color='green', fontweight='bold')
-        ax4.axis('off')
+        ax.text(bar.get_x() + bar.get_width()/2., height,
+                label, ha='center', va='bottom', fontweight='bold', fontsize=9)
     
     plt.tight_layout()
-    plt.savefig('dataset_details.png', dpi=300, bbox_inches='tight')
-    print("✓ Saved: dataset_details.png")
-    plt.show()
-
-def create_summary_dashboard(repo_csv: str, details_csv: str):
-    """
-    Create a comprehensive single-page dashboard
-    """
-    repo_df = pd.read_csv(repo_csv)
-    details_df = pd.read_csv(details_csv)
     
-    fig = plt.figure(figsize=(20, 12))
+    safe_filename = problem_col.replace('_', '-')
+    output_file = output_path / f"high-{safe_filename}.png"
+    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    plt.close()
+
+
+def create_overview_dashboard(df: pd.DataFrame, output_dir: str = "./visualizations"):
+    output_path = Path(output_dir)
+    output_path.mkdir(exist_ok=True)
+    
+    fig = plt.figure(figsize=(18, 10))
     gs = fig.add_gridspec(3, 3, hspace=0.3, wspace=0.3)
+    fig.suptitle('Repository Quality Dashboard', fontsize=18, fontweight='bold')
     
-    fig.suptitle('Data Quality Validation Dashboard', fontsize=18, fontweight='bold')
+    problem_cols = [col for col in PROBLEM_TYPES.keys() if col in df.columns]
     
-    # 1. Repository Overview (TOP LEFT - spans 2 columns)
-    ax1 = fig.add_subplot(gs[0, :2])
+    ax1 = fig.add_subplot(gs[0:2, 0])
     
-    critical_issues = repo_df[['repository', 'contamination_count', 
-                               'constant_features_count', 'excessive_missing_count']].set_index('repository')
-    critical_issues.plot(kind='bar', ax=ax1, width=0.7)
-    ax1.set_title('Critical Issues Count by Repository', fontsize=12, fontweight='bold')
-    ax1.set_ylabel('Number of Datasets')
-    ax1.legend(['Contamination', 'Constant Features', 'Excessive Missing'], fontsize=9)
-    ax1.set_xticklabels(repo_df['repository'], rotation=0)
-    ax1.grid(axis='y', alpha=0.3)
+    quality_scores = {}
+    for source in df['source'].unique():
+        source_data = df[df['source'] == source]
+        has_problems = (source_data[problem_cols].sum(axis=1) > 0).sum()
+        clean_pct = ((len(source_data) - has_problems) / len(source_data)) * 100
+        quality_scores[source] = clean_pct
     
-    # 2. Dataset Count (TOP RIGHT)
-    ax2 = fig.add_subplot(gs[0, 2])
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c']
-    ax2.pie(repo_df['num_datasets'], labels=repo_df['repository'], autopct='%1.0f%%',
-           colors=colors, startangle=90)
-    ax2.set_title('Dataset Distribution', fontsize=12, fontweight='bold')
+    colors = [REPO_COLORS.get(repo, '#888888') for repo in quality_scores.keys()]
+    bars = ax1.barh(list(quality_scores.keys()), list(quality_scores.values()), color=colors, alpha=0.8)
+    ax1.set_xlabel('% Clean Datasets', fontsize=12, fontweight='bold')
+    ax1.set_title('Overall Repository Quality', fontsize=13, fontweight='bold')
+    ax1.set_xlim(0, 100)
+    ax1.grid(axis='x', alpha=0.3)
     
-    # 3. Contamination Timeline (MIDDLE LEFT - spans 2 columns)
-    ax3 = fig.add_subplot(gs[1, :2])
-    
-    contaminated = details_df[details_df['contamination_pct'] > 0].sort_values('contamination_pct')
-    if len(contaminated) > 0:
-        # Show top 15 worst cases
-        contaminated_display = contaminated.tail(15)
-        
-        colors_cont = contaminated_display['source'].map({'huggingface': '#1f77b4', 
-                                                   'openml': '#ff7f0e', 
-                                                   'uci': '#2ca02c'})
-        ax3.barh(range(len(contaminated_display)), contaminated_display['contamination_pct'], color=colors_cont)
-        ax3.set_yticks(range(len(contaminated_display)))
-        ax3.set_yticklabels(contaminated_display['dataset'], fontsize=9)
-        ax3.set_xlabel('Contamination (%)')
-        ax3.set_title(f'Train/Test Contamination (Top {len(contaminated_display)} of {len(contaminated)} affected)', 
-                     fontsize=12, fontweight='bold')
-        ax3.axvline(x=1, color='orange', linestyle='--', alpha=0.5, linewidth=2, label='1%')
-        ax3.axvline(x=5, color='red', linestyle='--', alpha=0.5, linewidth=2, label='5%')
-        ax3.axvline(x=20, color='darkred', linestyle='--', alpha=0.5, linewidth=2, label='20% SEVERE')
-        ax3.legend(fontsize=8, loc='lower right')
-        ax3.grid(axis='x', alpha=0.3)
-    else:
-        ax3.text(0.5, 0.5, '✓ No Contamination Detected', 
-                ha='center', va='center', fontsize=16, color='green', fontweight='bold')
-        ax3.axis('off')
-    
-    # 4. Issue Severity Summary (MIDDLE RIGHT)
-    ax4 = fig.add_subplot(gs[1, 2])
-    
-    total_issues = pd.DataFrame({
-        'Severity': ['Errors', 'Warnings', 'Info'],
-        'Count': [details_df['errors'].sum(), 
-                 details_df['warnings'].sum(), 
-                 details_df['infos'].sum()]
-    })
-    
-    colors_sev = ['#d62728', '#ff7f0e', '#1f77b4']
-    ax4.bar(total_issues['Severity'], total_issues['Count'], color=colors_sev)
-    ax4.set_title('Total Issues by Severity', fontsize=12, fontweight='bold')
-    ax4.set_ylabel('Count')
-    ax4.grid(axis='y', alpha=0.3)
-    
-    # Add count labels on bars
-    for i, v in enumerate(total_issues['Count']):
-        ax4.text(i, v + 0.5, str(int(v)), ha='center', fontweight='bold')
-    
-    # 5. Feature Issues by Repository (BOTTOM LEFT)
-    ax5 = fig.add_subplot(gs[2, 0])
-    
-    feature_issues = details_df.groupby('source')[['enum_as_numeric_features', 
-                                                    'unnormalized_features']].sum()
-    feature_issues.plot(kind='bar', ax=ax5, width=0.7)
-    ax5.set_title('Representation Issues', fontsize=12, fontweight='bold')
-    ax5.set_ylabel('Count')
-    ax5.set_xlabel('Repository')
-    ax5.legend(['Enum as Numeric', 'Unnormalized'], fontsize=8)
-    ax5.set_xticklabels(feature_issues.index, rotation=0)
-    ax5.grid(axis='y', alpha=0.3)
-    
-    # 6. Data Quality Metrics (BOTTOM MIDDLE)
-    ax6 = fig.add_subplot(gs[2, 1])
-    
-    quality_metrics = repo_df[['repository', 'avg_missing_rate_pct', 
-                               'avg_duplicate_rate_pct']].set_index('repository')
-    quality_metrics.plot(kind='bar', ax=ax6, width=0.7)
-    ax6.set_title('Average Data Quality', fontsize=12, fontweight='bold')
-    ax6.set_ylabel('Percentage (%)')
-    ax6.set_xlabel('Repository')
-    ax6.legend(['Missing Rate', 'Duplicate Rate'], fontsize=8)
-    ax6.set_xticklabels(quality_metrics.index, rotation=0)
-    ax6.grid(axis='y', alpha=0.3)
-    
-    # 7. Quality Score Card (BOTTOM RIGHT)
-    ax7 = fig.add_subplot(gs[2, 2])
-    ax7.axis('off')
-    
-    # Calculate scores
-    total_datasets = len(details_df)
-    clean_datasets = len(details_df[(details_df['errors'] == 0) & 
-                                   (details_df['contamination_pct'] == 0)])
-    contaminated_datasets = (details_df['contamination_pct'] > 0).sum()
-    
-    scorecard_text = f"""
-    QUALITY SCORECARD
-    {'='*25}
-    
-    Total Datasets: {total_datasets}
-    
-    Clean Datasets: {clean_datasets}
-    ({clean_datasets/total_datasets*100:.1f}%)
-    
-    Contaminated: {contaminated_datasets}
-    ({contaminated_datasets/total_datasets*100:.1f}%)
-    
-    Total Errors: {details_df['errors'].sum()}
-    Total Warnings: {details_df['warnings'].sum()}
-    
-    Best Repository:
-    {repo_df.sort_values('contamination_count').iloc[0]['repository']}
-    """
-    
-    ax7.text(0.1, 0.5, scorecard_text, fontsize=11, family='monospace',
-            verticalalignment='center')
-    
-    plt.savefig('quality_dashboard.png', dpi=300, bbox_inches='tight')
-    print("Saved: quality_dashboard.png")
-    plt.show()
+    for bar, (repo, score) in zip(bars, quality_scores.items()):
+        width = bar.get_width()
+        total = len(df[df['source'] == repo])
+        clean = int((score / 100) * total)
+        ax1.text(width + 2, bar.get_y() + bar.get_height()/2,
+                f'{score:.1f}% ({clean}/{total})', va='center', fontweight='bold', fontsize=10)
 
+    ax2 = fig.add_subplot(gs[0, 1:3])
+    for source in df['source'].unique():
+        source_data = df[df['source'] == source]
+        ax2.scatter(source_data['rows'], source_data['columns'], 
+                   label=source, alpha=0.5, s=50,
+                   color=REPO_COLORS.get(source, '#888888'))
+    ax2.set_xlabel('Rows (log)', fontsize=9)
+    ax2.set_ylabel('Columns', fontsize=9)
+    ax2.set_title('Dataset Sizes', fontsize=11, fontweight='bold')
+    ax2.legend(fontsize=8)
+    ax2.set_xscale('log')
+    ax2.grid(True, alpha=0.3)
+    ax2.tick_params(labelsize=8)
+    
+    ax3 = fig.add_subplot(gs[1, 1])
+    avg_missing = df.groupby('source')['missing_rate_pct'].mean()
+    colors = [REPO_COLORS.get(repo, '#888888') for repo in avg_missing.index]
+    bars = ax3.bar(avg_missing.index, avg_missing.values, color=colors, width=0.6, alpha=0.8)
+    ax3.set_ylabel('Missing Rate (%)', fontsize=10, fontweight='bold')
+    ax3.set_title('Average Missing Values', fontsize=11, fontweight='bold')
+    ax3.grid(axis='y', alpha=0.3)
+    ax3.tick_params(labelsize=9)
+
+    for bar in bars:
+        height = bar.get_height()
+        ax3.text(bar.get_x() + bar.get_width()/2., height,
+                f'{height:.1f}%', ha='center', va='bottom', fontsize=9, fontweight='bold')
+    
+    ax4 = fig.add_subplot(gs[1, 2])
+    avg_dup = df.groupby('source')['duplicate_rate_pct'].mean()
+    colors = [REPO_COLORS.get(repo, '#888888') for repo in avg_dup.index]
+    bars = ax4.bar(avg_dup.index, avg_dup.values, color=colors, width=0.6, alpha=0.8)
+    ax4.set_ylabel('Duplicate Rate (%)', fontsize=10, fontweight='bold')
+    ax4.set_title('Average Duplicates', fontsize=11, fontweight='bold')
+    ax4.grid(axis='y', alpha=0.3)
+    ax4.tick_params(labelsize=9)
+
+    for bar in bars:
+        height = bar.get_height()
+        ax4.text(bar.get_x() + bar.get_width()/2., height,
+                f'{height:.1f}%', ha='center', va='bottom', fontsize=9, fontweight='bold')
+    
+    ax5 = fig.add_subplot(gs[2, :])
+    
+    repo_prevalence = df.groupby('source').apply(
+        lambda x: pd.Series({
+            col: (x[col] > 0).sum() / len(x) * 100 if col in x.columns else 0
+            for col in problem_cols
+        }),
+        include_groups=False
+    )
+    
+    active_cols = [col for col in problem_cols if repo_prevalence[col].sum() > 0]
+    heatmap_data = repo_prevalence[active_cols].T
+    
+    sns.heatmap(heatmap_data, annot=True, fmt='.0f', cmap='YlOrRd',
+               cbar_kws={'label': '% Affected'}, linewidths=0.5, ax=ax5,
+               vmin=0, vmax=100)
+    
+    ax5.set_title('Problem Prevalence Across Repositories (%)', fontsize=11, fontweight='bold', pad=10)
+    ax5.set_xlabel('Repository', fontsize=10, fontweight='bold')
+    ax5.set_ylabel('Problem Type', fontsize=10, fontweight='bold')
+    
+    ylabels = [PROBLEM_TYPES.get(col, {}).get('title', col.replace('_', ' ').title()) 
+               for col in active_cols]
+    ax5.set_yticklabels(ylabels, rotation=0, fontsize=8)
+    ax5.tick_params(labelsize=9)
+
+    output_file = output_path / "00-overview-dashboard.png"
+    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    plt.close()
+    
 
 def main():
-    """
-    Main function - run all visualizations
-    """
+    print("Generating visualizations...")
     
-    repo_csv = "repository_comparison.csv"
-    details_csv = "quality_summary.csv"
+    df, contam_df = load_summary_data("quality_summary.csv")
     
-    # Check files exist
-    import os
-    if not os.path.exists(repo_csv):
-        print(f"Error: {repo_csv} not found!")
-        print("Run data_validator.py first to generate the CSV files.")
-        return
+    output_dir = "./visualizations"
+    Path(output_dir).mkdir(exist_ok=True)
     
-    if not os.path.exists(details_csv):
-        print(f"Error: {details_csv} not found!")
-        print("Run data_validator.py first to generate the CSV files.")
-        return
+    create_overview_dashboard(df, output_dir)
     
-    print("Generating visualizations...\n")
+    critical_problems = ['has_train_test_contamination', 'has_ambiguous_labels']
+    critical_problems = [col for col in critical_problems if col in df.columns]
+
+    for problem_col in critical_problems:
+        create_critical_problem_viz(df, problem_col, PROBLEM_TYPES[problem_col], output_dir, contam_df)
+
+    high_problems = ['constant_features', 'excessive_missing_cols', 'mixed_types_cols']
+    high_problems = [col for col in high_problems if col in df.columns]
     
-    visualize_repository_comparison(repo_csv)
-    visualize_dataset_details(details_csv)
-    create_summary_dashboard(repo_csv, details_csv)
+    for problem_col in high_problems:
+        create_high_priority_viz(df, problem_col, PROBLEM_TYPES[problem_col], output_dir)
     
-    print("All visualizations complete!")
+    print("Done!")
 
 
 if __name__ == "__main__":
