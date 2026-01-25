@@ -1,8 +1,3 @@
-"""
-visualize_results.py
-Concise visualization focused on most important insights
-"""
-
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
