@@ -24,3 +24,26 @@ Install the required dependencies from requirements.txt using pip:
 ```zsh
 pip install -r requirements.txt
 ```
+
+## Running the experiment
+
+First, download the data using the ```download_dataset.py``` script by running the command:
+
+```zsh
+python3 download_datasets.py
+```
+
+Then, run the data check by using the ```data_validator.py``` by running the command:
+
+```zsh
+python3 data_validator.py
+```
+
+To see the resulted csv files in appropiate graphs, ruin the visualizor python script by running the command:
+
+```zsh
+python3 visualize_results.py
+```
+
+## Notes
+The programme was created on macOS Tahoe 26.2 and took at times a full minute for a single datasheet for uncommonly large datasheets. 
