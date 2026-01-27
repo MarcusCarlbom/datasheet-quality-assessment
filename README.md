@@ -3,7 +3,7 @@ Automatic data quality assessment of public datasheet repositories
 
 ## Environment
 
-This project was developed and run on **macOS Tahoe 26.2** using python3.1..
+This project was developed and run on **macOS Tahoe 26.2** using python3.11.
 
 ## Setup Instructions
 
