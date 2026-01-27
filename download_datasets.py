@@ -3,6 +3,9 @@ from sklearn.datasets import fetch_openml
 from sklearn.model_selection import train_test_split
 import pandas as pd
 from pathlib import Path
+import requests
+import zipfile
+import io
 
 class DatasetDownloader:
     def __init__(self, base_path="./data"):
@@ -103,17 +106,36 @@ class DatasetDownloader:
         except Exception as e:
             print(f"Failed: {e}")
     
-    def download_uci_with_split(self, url: str, name: str, has_header: bool = False):
+    def download_uci_with_split(self, url: str, name: str, data_filename: str = None, has_header: bool = False):
         """
-        Download from UCI and create train/test split
-        UCI never provides splits
+        Download from UCI (new zip format) and create train/test split
+        
+        Args:
+            url: The new UCI zip download URL
+            name: Dataset name for saving
+            data_filename: Specific .data or .csv file inside the zip (if None, uses first .data or .csv found)
+            has_header: Whether the data file has a header row
         """
         print(f"Downloading UCI: {name}...")
         try:
-            if has_header:
-                df = pd.read_csv(url)
-            else:
-                df = pd.read_csv(url, header=None)
+            # Download the zip file
+            response = requests.get(url)
+            response.raise_for_status()
+            
+            with zipfile.ZipFile(io.BytesIO(response.content)) as z:
+                if data_filename:
+                    target_file = data_filename
+                else:
+                    data_files = [f for f in z.namelist() if f.endswith(('.data', '.csv')) and not f.startswith('__MACOSX')]
+                    if not data_files:
+                        raise ValueError(f"No .data or .csv files found in {name}")
+                    target_file = data_files[0]
+                
+                with z.open(target_file) as f:
+                    if has_header:
+                        df = pd.read_csv(f)
+                    else:
+                        df = pd.read_csv(f, header=None)
             
             # Create 80/20 split
             train_df, test_df = train_test_split(
@@ -126,10 +148,10 @@ class DatasetDownloader:
             test_df.to_csv(
                 self.base_path / "uci" / f"{name}_test.csv", index=False
             )
-            print(f"Created splits: train ({len(train_df)}), test ({len(test_df)})")
+            print(f"  ✓ Created splits: train ({len(train_df)}), test ({len(test_df)})")
             
         except Exception as e:
-            print(f"Failed: {e}")
+            print(f"  ✗ Failed: {e}")
 
 
 def main():
@@ -138,7 +160,7 @@ def main():
     print("\n--- HuggingFace Datasets (10) ---\n")
     
     downloader.download_huggingface_with_splits("imdb", has_splits=True)
-    downloader.download_huggingface_with_splits("rotten_tomatoes", has_splits=True)
+    downloader.download_huggingface_with_splits("cornell-movie-review-data/rotten_tomatoes", has_splits=True)
     downloader.download_huggingface_with_splits("ag_news", has_splits=True)
     downloader.download_huggingface_with_splits("glue", config="sst2", has_splits=True)
     downloader.download_huggingface_with_splits("glue", config="cola", has_splits=True)
@@ -147,6 +169,7 @@ def main():
     downloader.download_huggingface_with_splits("dbpedia_14", has_splits=True)
     downloader.download_huggingface_with_splits("yahoo_answers_topics", has_splits=True)
     downloader.download_huggingface_with_splits("tweet_eval", config="emotion", has_splits=True)
+    
     print("\n--- OpenML Datasets (10) ---\n")
     
     downloader.download_openml_with_split(31, "credit_g")
@@ -159,56 +182,67 @@ def main():
     downloader.download_openml_with_split(44, "spam")                  
     downloader.download_openml_with_split(1489, "phoneme")             
     downloader.download_openml_with_split(1464, "blood_transfusion") 
+    
     print("\n--- UCI Datasets (10) ---\n")
     
     downloader.download_uci_with_split(
-        "https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data",
-        "iris"
+        "https://archive.ics.uci.edu/static/public/53/iris.zip",
+        "iris",
+        data_filename="iris.data"
     )
     
     downloader.download_uci_with_split(
-        "https://archive.ics.uci.edu/ml/machine-learning-databases/wine/wine.data",
-        "wine"
+        "https://archive.ics.uci.edu/static/public/109/wine.zip",
+        "wine",
+        data_filename="wine.data"
     )
     
     downloader.download_uci_with_split(
-        "https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/breast-cancer-wisconsin.data",
-        "breast_cancer_wisconsin"
+        "https://archive.ics.uci.edu/static/public/15/breast+cancer+wisconsin+original.zip",
+        "breast_cancer_wisconsin",
+        data_filename="breast-cancer-wisconsin.data"
     )
     
     downloader.download_uci_with_split(
-        "https://archive.ics.uci.edu/ml/machine-learning-databases/mushroom/agaricus-lepiota.data",
-        "mushroom"
+        "https://archive.ics.uci.edu/static/public/73/mushroom.zip",
+        "mushroom",
+        data_filename="agaricus-lepiota.data"
     )
     
     downloader.download_uci_with_split(
-        "https://archive.ics.uci.edu/ml/machine-learning-databases/car/car.data",
-        "car_evaluation"
+        "https://archive.ics.uci.edu/static/public/19/car+evaluation.zip",
+        "car_evaluation",
+        data_filename="car.data"
     )
     
     downloader.download_uci_with_split(
-        "https://archive.ics.uci.edu/ml/machine-learning-databases/letter-recognition/letter-recognition.data",
-        "letter_recognition"
+        "https://archive.ics.uci.edu/static/public/59/letter+recognition.zip",
+        "letter_recognition",
+        data_filename="letter-recognition.data"
     )
     
     downloader.download_uci_with_split(
-        "https://archive.ics.uci.edu/ml/machine-learning-databases/abalone/abalone.data",
-        "abalone"
+        "https://archive.ics.uci.edu/static/public/1/abalone.zip",
+        "abalone",
+        data_filename="abalone.data"
     )
     
     downloader.download_uci_with_split(
-        "https://archive.ics.uci.edu/ml/machine-learning-databases/balance-scale/balance-scale.data",
-        "balance_scale"
+        "https://archive.ics.uci.edu/static/public/12/balance+scale.zip",
+        "balance_scale",
+        data_filename="balance-scale.data"
     )
     
     downloader.download_uci_with_split(
-        "https://archive.ics.uci.edu/ml/machine-learning-databases/ecoli/ecoli.data",
-        "ecoli"
+        "https://archive.ics.uci.edu/static/public/39/ecoli.zip",
+        "ecoli",
+        data_filename="ecoli.data"
     )
     
     downloader.download_uci_with_split(
-        "https://archive.ics.uci.edu/ml/machine-learning-databases/dermatology/dermatology.data",
-        "dermatology"
+        "https://archive.ics.uci.edu/static/public/33/dermatology.zip",
+        "dermatology",
+        data_filename="dermatology.data"
     )
     
     print("\nDownloaded:")
