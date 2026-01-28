@@ -52,20 +52,47 @@ class DatasetDownloader:
                 gc.collect()
                 
                 print(f"  ✓ Saved train ({train_size}) and test ({test_size})")
+                
+            except ValueError as e:
+                # Handle datasets with only one split or different split names
+                if "Bad split" in str(e) or "Unknown split" in str(e):
+                    print(f"  Note: Dataset doesn't have train/test splits, will create custom split")
+                    self._download_and_split_hf(dataset_name, config)
+                else:
+                    raise
             except Exception as e:
                 print(f"Failed to load splits: {e}")
                 self._download_and_split_hf(dataset_name, config)
         else:
             self._download_and_split_hf(dataset_name, config)
-    
+
     def _download_and_split_hf(self, dataset_name: str, config: str = None):
         """Download HF dataset without predefined splits, create our own"""
-        if config:
-            dataset = load_dataset(dataset_name, config, split="train")
-        else:
-            dataset = load_dataset(dataset_name, split="train")
+        try:
+            # Try to load train split first
+            if config:
+                dataset = load_dataset(dataset_name, config, split="train", streaming=True)
+            else:
+                dataset = load_dataset(dataset_name, split="train", streaming=True)
+        except ValueError:
+            # If train doesn't exist, try test split
+            try:
+                if config:
+                    dataset = load_dataset(dataset_name, config, split="test", streaming=True)
+                else:
+                    dataset = load_dataset(dataset_name, split="test", streaming=True)
+            except ValueError:
+                # If neither works, load all available data
+                if config:
+                    dataset = load_dataset(dataset_name, config, streaming=True)
+                else:
+                    dataset = load_dataset(dataset_name, streaming=True)
+                # Convert entire dataset
+                dataset = dataset['train'] if 'train' in dataset else list(dataset.values())[0]
         
-        df = dataset.to_pandas()
+        df = pd.DataFrame(list(dataset))
+        del dataset
+        gc.collect()
         
         train_df, test_df = train_test_split(
             df, test_size=0.2, random_state=42
@@ -86,6 +113,7 @@ class DatasetDownloader:
             self.base_path / "huggingface" / f"{safe_name}_test.parquet"
         )
         del train_df, test_df
+        gc.collect()
         print(f"Created splits: train ({train_size}), test ({test_size})")
     
     def download_openml_with_split(self, data_id: int, name: str):
