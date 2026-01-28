@@ -1,3 +1,4 @@
+import gc
 from datasets import load_dataset
 from sklearn.datasets import fetch_openml
 from sklearn.model_selection import train_test_split
@@ -21,14 +22,21 @@ class DatasetDownloader:
         if has_splits:
             try:
                 if config:
-                    train = load_dataset(dataset_name, config, split="train")
-                    test = load_dataset(dataset_name, config, split="test")
+                    train = load_dataset(dataset_name, config, split="train", streaming=True)
+                    test = load_dataset(dataset_name, config, split="test", streaming=True)
                 else:
-                    train = load_dataset(dataset_name, split="train")
-                    test = load_dataset(dataset_name, split="test")
+                    train = load_dataset(dataset_name, split="train", streaming=True)
+                    test = load_dataset(dataset_name, split="test", streaming=True)
                 
-                train_df = train.to_pandas()
-                test_df = test.to_pandas()
+                # Convert streaming dataset to list, then to pandas
+                train_df = pd.DataFrame(list(train))
+                test_df = pd.DataFrame(list(test))
+                
+                train_size = len(train_df)
+                test_size = len(test_df)
+            
+                del train, test
+                gc.collect()
                 
                 safe_name = dataset_name.replace('/', '_')
                 if config:
@@ -40,8 +48,10 @@ class DatasetDownloader:
                 test_df.to_parquet(
                     self.base_path / "huggingface" / f"{safe_name}_test.parquet"
                 )
-                print(f"  ✓ Saved train ({len(train_df)}) and test ({len(test_df)})")
+                del train_df, test_df
+                gc.collect()
                 
+                print(f"  ✓ Saved train ({train_size}) and test ({test_size})")
             except Exception as e:
                 print(f"Failed to load splits: {e}")
                 self._download_and_split_hf(dataset_name, config)
@@ -60,6 +70,10 @@ class DatasetDownloader:
         train_df, test_df = train_test_split(
             df, test_size=0.2, random_state=42
         )
+        del df 
+        
+        train_size = len(train_df)
+        test_size = len(test_df)
         
         safe_name = dataset_name.replace('/', '_')
         if config:
@@ -71,7 +85,8 @@ class DatasetDownloader:
         test_df.to_parquet(
             self.base_path / "huggingface" / f"{safe_name}_test.parquet"
         )
-        print(f"Created splits: train ({len(train_df)}), test ({len(test_df)})")
+        del train_df, test_df
+        print(f"Created splits: train ({train_size}), test ({test_size})")
     
     def download_openml_with_split(self, data_id: int, name: str):
         """
@@ -82,7 +97,7 @@ class DatasetDownloader:
         try:
             dataset = fetch_openml(data_id=data_id, as_frame=True, parser='auto')
             df = pd.concat([dataset.data, dataset.target], axis=1)
-            
+
             # Create 80/20 split with stratification if possible
             try:
                 train_df, test_df = train_test_split(
@@ -94,14 +109,18 @@ class DatasetDownloader:
                 train_df, test_df = train_test_split(
                     df, test_size=0.2, random_state=42
                 )
-            
+            del df
+            train_size = len(train_df)
+            test_size = len(test_df)
             train_df.to_parquet(
                 self.base_path / "openml" / f"{name}_train.parquet"
             )
             test_df.to_parquet(
                 self.base_path / "openml" / f"{name}_test.parquet"
             )
-            print(f"Created splits: train ({len(train_df)}), test ({len(test_df)})")
+            del train_df, test_df
+            del dataset 
+            print(f"Created splits: train ({train_size}), test ({test_size})")
             
         except Exception as e:
             print(f"Failed: {e}")
@@ -148,7 +167,12 @@ class DatasetDownloader:
             test_df.to_csv(
                 self.base_path / "uci" / f"{name}_test.csv", index=False
             )
-            print(f"  ✓ Created splits: train ({len(train_df)}), test ({len(test_df)})")
+            
+            train_df_size = len(train_df)
+            test_df_size = len(test_df)
+            
+            del train_df, test_df
+            print(f"  ✓ Created splits: train ({train_df_size}), test ({test_df_size})")
             
         except Exception as e:
             print(f"  ✗ Failed: {e}")
@@ -157,40 +181,56 @@ class DatasetDownloader:
 def main():
     downloader = DatasetDownloader()
     
+    downloader.download_uci_with_split(
+        "https://archive.ics.uci.edu/static/public/327/phishing+websites.zip",
+        "phishing_websites",
+        data_filename="phishing_websites.data"
+    )
+    
     print("\n--- HuggingFace Datasets (10) ---\n")
     #--
     downloader.download_huggingface_with_splits("imdb", has_splits=True)
     downloader.download_huggingface_with_splits("cornell-movie-review-data/rotten_tomatoes", has_splits=True)
     downloader.download_huggingface_with_splits("ag_news", has_splits=True)
+    gc.collect()
     downloader.download_huggingface_with_splits("glue", config="sst2", has_splits=True)
     downloader.download_huggingface_with_splits("glue", config="cola", has_splits=True)
     downloader.download_huggingface_with_splits("yelp_review_full", has_splits=True)
+    gc.collect()
     downloader.download_huggingface_with_splits("amazon_polarity", has_splits=True)
     downloader.download_huggingface_with_splits("dbpedia_14", has_splits=True)
     downloader.download_huggingface_with_splits("yahoo_answers_topics", has_splits=True)
+    gc.collect()
     downloader.download_huggingface_with_splits("tweet_eval", config="emotion", has_splits=True)
     #--
     downloader.download_huggingface_with_splits("allenai/openbookqa",config= "additional",has_splits=True)
-    downloader.download_huggingface_with_splits("deepmind/code_contests", has_splits=True)
+    # downloader.download_huggingface_with_splits("deepmind/code_contests", has_splits=True)
+    gc.collect()
     downloader.download_huggingface_with_splits("aps/super_glue", config="axb",has_splits=True)
     downloader.download_huggingface_with_splits("nyu-mll/glue", config="mnli_matched", has_splits=True)
     downloader.download_huggingface_with_splits("nyu-mll/glue", config="qnli", has_splits=True)
+    gc.collect()
     downloader.download_huggingface_with_splits("baber/piqa", has_splits=True)
     downloader.download_huggingface_with_splits("FDlalala/tranS", has_splits=True)
     downloader.download_huggingface_with_splits("yairschiff/qm9", has_splits=True)
+    gc.collect()
     downloader.download_huggingface_with_splits("MathArena/aime_2025", has_splits=True)
     downloader.download_huggingface_with_splits("darius-tang/peg_in_hole", has_splits=True)
     #--
     downloader.download_huggingface_with_splits("oolongbench/oolong-synth",has_splits=True)
+    gc.collect()
     downloader.download_huggingface_with_splits("OpenAssistant/oasst1", has_splits=True)
     downloader.download_huggingface_with_splits("josancamon/paperbench",has_splits=True)
     downloader.download_huggingface_with_splits("jaredfern/codah", config="codah", has_splits=True)
+    gc.collect()
     downloader.download_huggingface_with_splits("nlerobot/pusht", has_splits=True)
     downloader.download_huggingface_with_splits("livebench/math", has_splits=True)
     downloader.download_huggingface_with_splits("zwhe99/amc23", has_splits=True)
+    gc.collect()
     downloader.download_huggingface_with_splits("nlile/24-game", has_splits=True)
     downloader.download_huggingface_with_splits("ISdept/piper_arm", has_splits=True)
     downloader.download_huggingface_with_splits("alvations/c4p0", has_splits=True)
+    gc.collect()
     #--
     
     print("\n--- OpenML Datasets (10) ---\n")
@@ -198,35 +238,45 @@ def main():
     downloader.download_openml_with_split(31, "credit_g")
     downloader.download_openml_with_split(1590, "adult")
     downloader.download_openml_with_split(554, "mnist_784")
+    gc.collect()
     downloader.download_openml_with_split(40498, "wine_quality_white") 
     downloader.download_openml_with_split(1461, "bank_marketing") 
     downloader.download_openml_with_split(37, "diabetes")
+    gc.collect()
     downloader.download_openml_with_split(40945, "titanic")   
     downloader.download_openml_with_split(44, "spam")                  
-    downloader.download_openml_with_split(1489, "phoneme")             
+    downloader.download_openml_with_split(1489, "phoneme") 
+    gc.collect()            
     downloader.download_openml_with_split(1464, "blood_transfusion") 
     #--
     downloader.download_openml_with_split(1120, "MagicTelescope")
     downloader.download_openml_with_split(1068, "pc1")
+    gc.collect()
     downloader.download_openml_with_split(4134, "Bioresponse")
     downloader.download_openml_with_split(1510, "wdbc") 
     downloader.download_openml_with_split(57, "hypothyroid") 
+    gc.collect()
     downloader.download_openml_with_split(534, "cps_85_wages")
     downloader.download_openml_with_split(43342, "German-House-Prices")   
-    downloader.download_openml_with_split(46531, "dataset_china")                  
+    downloader.download_openml_with_split(46531, "dataset_china")   
+    gc.collect()               
     downloader.download_openml_with_split(1104, "leukemia")             
     downloader.download_openml_with_split(42225, "diamonds")
     #--
     downloader.download_openml_with_split(44063, "Bike_Sharing_Demand")
+    gc.collect()
     downloader.download_openml_with_split(43510, "UEFA-Champions-league-Player-Statistics")
     downloader.download_openml_with_split(50, "tic-tac-toe")
     downloader.download_openml_with_split(42, "soybean") 
+    gc.collect()
     downloader.download_openml_with_split(3, "kr-vs-kp") 
     downloader.download_openml_with_split(334, "monks-problems-2")
     downloader.download_openml_with_split(54, "vehicle")   
+    gc.collect()
     downloader.download_openml_with_split(2, "anneal")                  
     downloader.download_openml_with_split(23517, "numerai28.6")             
     downloader.download_openml_with_split(40672, "fars")
+    gc.collect()
     #--
     
     print("\n--- UCI Datasets (10) ---\n")
