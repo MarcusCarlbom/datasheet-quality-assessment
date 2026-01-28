@@ -159,7 +159,7 @@ def main():
     
     print("\n--- HuggingFace Datasets (10) ---\n")
     #--
-    '''downloader.download_huggingface_with_splits("imdb", has_splits=True)
+    downloader.download_huggingface_with_splits("imdb", has_splits=True)
     downloader.download_huggingface_with_splits("cornell-movie-review-data/rotten_tomatoes", has_splits=True)
     downloader.download_huggingface_with_splits("ag_news", has_splits=True)
     downloader.download_huggingface_with_splits("glue", config="sst2", has_splits=True)
@@ -228,7 +228,7 @@ def main():
     downloader.download_openml_with_split(23517, "numerai28.6")             
     downloader.download_openml_with_split(40672, "fars")
     #--
-    '''
+    
     print("\n--- UCI Datasets (10) ---\n")
     #--
     downloader.download_uci_with_split(
