@@ -208,7 +208,7 @@ class DatasetDownloader:
 
 def main():
     downloader = DatasetDownloader()
-    '''
+
     print("\n--- HuggingFace Datasets (10) ---\n")
     #--
     downloader.download_huggingface_with_splits("imdb", has_splits=True)
@@ -300,7 +300,7 @@ def main():
     downloader.download_openml_with_split(40672, "fars")
     gc.collect()
     #--
-    '''
+    
     print("\n--- UCI Datasets (10) ---\n")
     #--
     downloader.download_uci_with_split(
@@ -487,9 +487,9 @@ def main():
     #--
 
     print("\nDownloaded:")
-    print("10 HuggingFace datasets (text classification)")
-    print("10 OpenML datasets (tabular)")
-    print("10 UCI datasets (classic ML)")
+    print("30 HuggingFace datasets (text classification)")
+    print("30 OpenML datasets (tabular)")
+    print("30 UCI datasets (classic ML)")
 
 
 if __name__ == "__main__":
