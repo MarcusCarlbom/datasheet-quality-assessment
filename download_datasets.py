@@ -158,8 +158,8 @@ def main():
     downloader = DatasetDownloader()
     
     print("\n--- HuggingFace Datasets (10) ---\n")
-    
-    downloader.download_huggingface_with_splits("imdb", has_splits=True)
+    #--
+    '''downloader.download_huggingface_with_splits("imdb", has_splits=True)
     downloader.download_huggingface_with_splits("cornell-movie-review-data/rotten_tomatoes", has_splits=True)
     downloader.download_huggingface_with_splits("ag_news", has_splits=True)
     downloader.download_huggingface_with_splits("glue", config="sst2", has_splits=True)
@@ -169,9 +169,32 @@ def main():
     downloader.download_huggingface_with_splits("dbpedia_14", has_splits=True)
     downloader.download_huggingface_with_splits("yahoo_answers_topics", has_splits=True)
     downloader.download_huggingface_with_splits("tweet_eval", config="emotion", has_splits=True)
+    #--
+    downloader.download_huggingface_with_splits("allenai/openbookqa",config= "additional",has_splits=True)
+    downloader.download_huggingface_with_splits("deepmind/code_contests", has_splits=True)
+    downloader.download_huggingface_with_splits("aps/super_glue", config="axb",has_splits=True)
+    downloader.download_huggingface_with_splits("nyu-mll/glue", config="mnli_matched", has_splits=True)
+    downloader.download_huggingface_with_splits("nyu-mll/glue", config="qnli", has_splits=True)
+    downloader.download_huggingface_with_splits("baber/piqa", has_splits=True)
+    downloader.download_huggingface_with_splits("FDlalala/tranS", has_splits=True)
+    downloader.download_huggingface_with_splits("yairschiff/qm9", has_splits=True)
+    downloader.download_huggingface_with_splits("MathArena/aime_2025", has_splits=True)
+    downloader.download_huggingface_with_splits("darius-tang/peg_in_hole", has_splits=True)
+    #--
+    downloader.download_huggingface_with_splits("oolongbench/oolong-synth",has_splits=True)
+    downloader.download_huggingface_with_splits("OpenAssistant/oasst1", has_splits=True)
+    downloader.download_huggingface_with_splits("josancamon/paperbench",has_splits=True)
+    downloader.download_huggingface_with_splits("jaredfern/codah", config="codah", has_splits=True)
+    downloader.download_huggingface_with_splits("nlerobot/pusht", has_splits=True)
+    downloader.download_huggingface_with_splits("livebench/math", has_splits=True)
+    downloader.download_huggingface_with_splits("zwhe99/amc23", has_splits=True)
+    downloader.download_huggingface_with_splits("nlile/24-game", has_splits=True)
+    downloader.download_huggingface_with_splits("ISdept/piper_arm", has_splits=True)
+    downloader.download_huggingface_with_splits("alvations/c4p0", has_splits=True)
+    #--
     
     print("\n--- OpenML Datasets (10) ---\n")
-    
+    #--
     downloader.download_openml_with_split(31, "credit_g")
     downloader.download_openml_with_split(1590, "adult")
     downloader.download_openml_with_split(554, "mnist_784")
@@ -182,9 +205,32 @@ def main():
     downloader.download_openml_with_split(44, "spam")                  
     downloader.download_openml_with_split(1489, "phoneme")             
     downloader.download_openml_with_split(1464, "blood_transfusion") 
-    
+    #--
+    downloader.download_openml_with_split(1120, "MagicTelescope")
+    downloader.download_openml_with_split(1068, "pc1")
+    downloader.download_openml_with_split(4134, "Bioresponse")
+    downloader.download_openml_with_split(1510, "wdbc") 
+    downloader.download_openml_with_split(57, "hypothyroid") 
+    downloader.download_openml_with_split(534, "cps_85_wages")
+    downloader.download_openml_with_split(43342, "German-House-Prices")   
+    downloader.download_openml_with_split(46531, "dataset_china")                  
+    downloader.download_openml_with_split(1104, "leukemia")             
+    downloader.download_openml_with_split(42225, "diamonds")
+    #--
+    downloader.download_openml_with_split(44063, "Bike_Sharing_Demand")
+    downloader.download_openml_with_split(43510, "UEFA-Champions-league-Player-Statistics")
+    downloader.download_openml_with_split(50, "tic-tac-toe")
+    downloader.download_openml_with_split(42, "soybean") 
+    downloader.download_openml_with_split(3, "kr-vs-kp") 
+    downloader.download_openml_with_split(334, "monks-problems-2")
+    downloader.download_openml_with_split(54, "vehicle")   
+    downloader.download_openml_with_split(2, "anneal")                  
+    downloader.download_openml_with_split(23517, "numerai28.6")             
+    downloader.download_openml_with_split(40672, "fars")
+    #--
+    '''
     print("\n--- UCI Datasets (10) ---\n")
-    
+    #--
     downloader.download_uci_with_split(
         "https://archive.ics.uci.edu/static/public/53/iris.zip",
         "iris",
@@ -244,7 +290,68 @@ def main():
         "dermatology",
         data_filename="dermatology.data"
     )
+
+    #--
+    downloader.download_uci_with_split(
+        "https://archive.ics.uci.edu/dataset/327/phishing+websites.zip",
+        "phishing_websites",
+        data_filename="phishing_websites.data"
+    )
     
+    downloader.download_uci_with_split(
+        "https://archive.ics.uci.edu/static/public/109/wine.zip",
+        "wine",
+        data_filename="wine.data"
+    )
+    
+    downloader.download_uci_with_split(
+        "https://archive.ics.uci.edu/static/public/15/breast+cancer+wisconsin+original.zip",
+        "breast_cancer_wisconsin",
+        data_filename="breast-cancer-wisconsin.data"
+    )
+    
+    downloader.download_uci_with_split(
+        "https://archive.ics.uci.edu/static/public/73/mushroom.zip",
+        "mushroom",
+        data_filename="agaricus-lepiota.data"
+    )
+    
+    downloader.download_uci_with_split(
+        "https://archive.ics.uci.edu/static/public/19/car+evaluation.zip",
+        "car_evaluation",
+        data_filename="car.data"
+    )
+    
+    downloader.download_uci_with_split(
+        "https://archive.ics.uci.edu/static/public/59/letter+recognition.zip",
+        "letter_recognition",
+        data_filename="letter-recognition.data"
+    )
+    
+    downloader.download_uci_with_split(
+        "https://archive.ics.uci.edu/static/public/1/abalone.zip",
+        "abalone",
+        data_filename="abalone.data"
+    )
+    
+    downloader.download_uci_with_split(
+        "https://archive.ics.uci.edu/static/public/12/balance+scale.zip",
+        "balance_scale",
+        data_filename="balance-scale.data"
+    )
+    
+    downloader.download_uci_with_split(
+        "https://archive.ics.uci.edu/static/public/39/ecoli.zip",
+        "ecoli",
+        data_filename="ecoli.data"
+    )
+    
+    downloader.download_uci_with_split(
+        "https://archive.ics.uci.edu/static/public/33/dermatology.zip",
+        "dermatology",
+        data_filename="dermatology.data"
+    )
+
     print("\nDownloaded:")
     print("10 HuggingFace datasets (text classification)")
     print("10 OpenML datasets (tabular)")
