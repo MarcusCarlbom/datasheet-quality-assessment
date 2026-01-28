@@ -180,13 +180,7 @@ class DatasetDownloader:
 
 def main():
     downloader = DatasetDownloader()
-    
-    downloader.download_uci_with_split(
-        "https://archive.ics.uci.edu/static/public/327/phishing+websites.zip",
-        "phishing_websites",
-        data_filename="phishing_websites.data"
-    )
-    
+    '''
     print("\n--- HuggingFace Datasets (10) ---\n")
     #--
     downloader.download_huggingface_with_splits("imdb", has_splits=True)
@@ -204,7 +198,7 @@ def main():
     downloader.download_huggingface_with_splits("tweet_eval", config="emotion", has_splits=True)
     #--
     downloader.download_huggingface_with_splits("allenai/openbookqa",config= "additional",has_splits=True)
-    # downloader.download_huggingface_with_splits("deepmind/code_contests", has_splits=True)
+    downloader.download_huggingface_with_splits("RogersPyke/robocoin_10K_20260121", has_splits=True)
     gc.collect()
     downloader.download_huggingface_with_splits("aps/super_glue", config="axb",has_splits=True)
     downloader.download_huggingface_with_splits("nyu-mll/glue", config="mnli_matched", has_splits=True)
@@ -278,7 +272,7 @@ def main():
     downloader.download_openml_with_split(40672, "fars")
     gc.collect()
     #--
-    
+    '''
     print("\n--- UCI Datasets (10) ---\n")
     #--
     downloader.download_uci_with_split(
@@ -341,66 +335,128 @@ def main():
         data_filename="dermatology.data"
     )
 
+ #--
+    downloader.download_uci_with_split(
+        "https://archive.ics.uci.edu/static/public/189/parkinsons+telemonitoring.zip",
+        "parkinsons_telemonitoring",
+        data_filename="parkinsons_updrs.data"
+    )
+    
+    downloader.download_uci_with_split(
+        "https://cdn.uci-ics-mlr-prod.aws.uci.edu/183/communities%2Band%2Bcrime.zip",
+        "communities_and_crime",
+        data_filename="communities.data"
+    )
+    
+    downloader.download_uci_with_split(
+        "https://cdn.uci-ics-mlr-prod.aws.uci.edu/144/statlog%2Bgerman%2Bcredit%2Bdata.zip",
+        "german_credit",
+        data_filename="german.data"
+    )
+    
+    downloader.download_uci_with_split(
+        "https://cdn.uci-ics-mlr-prod.aws.uci.edu/9/auto%2Bmpg.zip",
+        "auto_mpg",
+        data_filename="auto-mpg.data"
+    )
+    
+    downloader.download_uci_with_split(
+        "https://cdn.uci-ics-mlr-prod.aws.uci.edu/94/spambase.zip",
+        "spambase",
+        data_filename="spambase.data"
+    )
+    
+    downloader.download_uci_with_split(
+        "https://cdn.uci-ics-mlr-prod.aws.uci.edu/159/magic%2Bgamma%2Btelescope.zip",
+        "magic_gamma_telescope",
+        data_filename="magic04.data"
+    )
+    
+    downloader.download_uci_with_split(
+        "https://cdn.uci-ics-mlr-prod.aws.uci.edu/14/breast%2Bcancer.zip",
+        "breast_cancer",
+        data_filename="breast-cancer.data"
+    )
+    
+    downloader.download_uci_with_split(
+        "https://cdn.uci-ics-mlr-prod.aws.uci.edu/27/credit%2Bapproval.zip",
+        "credit_approval",
+        data_filename="crx.data"
+    )
+    
+    downloader.download_uci_with_split(
+        "https://cdn.uci-ics-mlr-prod.aws.uci.edu/20/census%2Bincome.zip",
+        "census_income",
+        data_filename="adult.data"
+    )
+    
+    downloader.download_uci_with_split(
+        "https://cdn.uci-ics-mlr-prod.aws.uci.edu/102/thyroid%2Bdisease.zip",
+        "thyroid_disease",
+        data_filename="allbp.data"
+    )
     #--
+
     downloader.download_uci_with_split(
-        "https://archive.ics.uci.edu/dataset/327/phishing+websites.zip",
-        "phishing_websites",
-        data_filename="phishing_websites.data"
+        "https://cdn.uci-ics-mlr-prod.aws.uci.edu/102/thyroid%2Bdisease.zip",
+        "thyroid_disease",
+        data_filename="allhyper.data"
     )
     
     downloader.download_uci_with_split(
-        "https://archive.ics.uci.edu/static/public/109/wine.zip",
-        "wine",
-        data_filename="wine.data"
+        "https://cdn.uci-ics-mlr-prod.aws.uci.edu/102/thyroid%2Bdisease.zip",
+        "thyroid_disease",
+        data_filename="allhypo.data"
     )
     
     downloader.download_uci_with_split(
-        "https://archive.ics.uci.edu/static/public/15/breast+cancer+wisconsin+original.zip",
-        "breast_cancer_wisconsin",
-        data_filename="breast-cancer-wisconsin.data"
+        "https://cdn.uci-ics-mlr-prod.aws.uci.edu/102/thyroid%2Bdisease.zip",
+        "thyroid_disease",
+        data_filename="allrep.data"
     )
     
     downloader.download_uci_with_split(
-        "https://archive.ics.uci.edu/static/public/73/mushroom.zip",
-        "mushroom",
-        data_filename="agaricus-lepiota.data"
+        "https://cdn.uci-ics-mlr-prod.aws.uci.edu/102/thyroid%2Bdisease.zip",
+        "thyroid_disease",
+        data_filename="dis.data"
     )
     
     downloader.download_uci_with_split(
-        "https://archive.ics.uci.edu/static/public/19/car+evaluation.zip",
-        "car_evaluation",
-        data_filename="car.data"
+        "https://cdn.uci-ics-mlr-prod.aws.uci.edu/102/thyroid%2Bdisease.zip",
+        "thyroid_disease",
+        data_filename="hypothyroid.data"
     )
     
     downloader.download_uci_with_split(
-        "https://archive.ics.uci.edu/static/public/59/letter+recognition.zip",
-        "letter_recognition",
-        data_filename="letter-recognition.data"
+        "https://cdn.uci-ics-mlr-prod.aws.uci.edu/102/thyroid%2Bdisease.zip",
+        "thyroid_disease",
+        data_filename="new-thyroid.data"
     )
     
     downloader.download_uci_with_split(
-        "https://archive.ics.uci.edu/static/public/1/abalone.zip",
-        "abalone",
-        data_filename="abalone.data"
+        "https://cdn.uci-ics-mlr-prod.aws.uci.edu/102/thyroid%2Bdisease.zip",
+        "thyroid_disease",
+        data_filename="sick.data"
     )
     
     downloader.download_uci_with_split(
-        "https://archive.ics.uci.edu/static/public/12/balance+scale.zip",
-        "balance_scale",
-        data_filename="balance-scale.data"
+        "https://cdn.uci-ics-mlr-prod.aws.uci.edu/174/parkinsons.zip",
+        "parkinsons",
+        data_filename="parkinsons.data"
     )
     
     downloader.download_uci_with_split(
-        "https://archive.ics.uci.edu/static/public/39/ecoli.zip",
-        "ecoli",
-        data_filename="ecoli.data"
+        "https://cdn.uci-ics-mlr-prod.aws.uci.edu/42/glass%2Bidentification.zip",
+        "glass_identification",
+        data_filename="glass.data"
     )
     
     downloader.download_uci_with_split(
-        "https://archive.ics.uci.edu/static/public/33/dermatology.zip",
-        "dermatology",
-        data_filename="dermatology.data"
+        "https://cdn.uci-ics-mlr-prod.aws.uci.edu/111/zoo.zip",
+        "zoo",
+        data_filename="zoo.data"
     )
+    #--
 
     print("\nDownloaded:")
     print("10 HuggingFace datasets (text classification)")
