@@ -21,7 +21,7 @@ class DatasetDownloader:
                                         max_size_gb: float = 10.0):
         print(f"Downloading HuggingFace: {dataset_name}...")
         
-        # Check dataset size before downloading
+        # Check dataset size before downloadingR
         try:
             if config:
                 dataset_info = get_dataset_config_info(dataset_name, config_name=config)
