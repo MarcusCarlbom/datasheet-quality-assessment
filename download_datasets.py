@@ -7,6 +7,7 @@ from pathlib import Path
 import requests
 import zipfile
 import io
+from datasets import get_dataset_config_info
 
 class DatasetDownloader:
     def __init__(self, base_path="./data"):
@@ -16,8 +17,27 @@ class DatasetDownloader:
     
     def download_huggingface_with_splits(self, dataset_name: str, 
                                         config: str = None,
-                                        has_splits: bool = True):
+                                        has_splits: bool = True,
+                                        max_size_gb: float = 10.0):
         print(f"Downloading HuggingFace: {dataset_name}...")
+        
+        # Check dataset size before downloadingR
+        try:
+            if config:
+                dataset_info = get_dataset_config_info(dataset_name, config_name=config)
+            else:
+                dataset_info = get_dataset_config_info(dataset_name)
+            
+            # Get total size in bytes and convert to GB
+            if dataset_info.dataset_size:
+                size_gb = dataset_info.dataset_size / (1024**3)
+                if size_gb > max_size_gb:
+                    print(f"SKIPPED: Dataset too large ({size_gb:.2f} GB > {max_size_gb} GB limit)")
+                    return
+                print(f"Dataset size: {size_gb:.2f} GB")
+        except Exception as e:
+            print(f"Warning: Could not check dataset size: {e}")
+            # Continue anyway if size check fails
         
         if has_splits:
             try:
@@ -51,23 +71,40 @@ class DatasetDownloader:
                 del train_df, test_df
                 gc.collect()
                 
-                print(f"  ✓ Saved train ({train_size}) and test ({test_size})")
+                print(f"Saved train ({train_size}) and test ({test_size})")
                 
             except ValueError as e:
                 # Handle datasets with only one split or different split names
                 if "Bad split" in str(e) or "Unknown split" in str(e):
-                    print(f"  Note: Dataset doesn't have train/test splits, will create custom split")
-                    self._download_and_split_hf(dataset_name, config)
+                    print(f"Note: Dataset doesn't have train/test splits, will create custom split")
+                    self._download_and_split_hf(dataset_name, config, max_size_gb)
                 else:
                     raise
             except Exception as e:
                 print(f"Failed to load splits: {e}")
-                self._download_and_split_hf(dataset_name, config)
+                self._download_and_split_hf(dataset_name, config, max_size_gb)
         else:
-            self._download_and_split_hf(dataset_name, config)
+            self._download_and_split_hf(dataset_name, config, max_size_gb)
 
-    def _download_and_split_hf(self, dataset_name: str, config: str = None):
+    def _download_and_split_hf(self, dataset_name: str, config: str = None, max_size_gb: float = 10.0):
         """Download HF dataset without predefined splits, create our own"""
+        
+        # Check size here too
+        try:
+            from datasets import get_dataset_config_info
+            if config:
+                dataset_info = get_dataset_config_info(dataset_name, config_name=config)
+            else:
+                dataset_info = get_dataset_config_info(dataset_name)
+            
+            if dataset_info.dataset_size:
+                size_gb = dataset_info.dataset_size / (1024**3)
+                if size_gb > max_size_gb:
+                    print(f"SKIPPED: Dataset too large ({size_gb:.2f} GB > {max_size_gb} GB limit)")
+                    return
+        except Exception:
+            pass  # Continue if size check fails
+        
         try:
             # Try to load train split first
             if config:
@@ -200,16 +237,16 @@ class DatasetDownloader:
             test_df_size = len(test_df)
             
             del train_df, test_df
-            print(f"  ✓ Created splits: train ({train_df_size}), test ({test_df_size})")
+            print(f"Created splits: train ({train_df_size}), test ({test_df_size})")
             
         except Exception as e:
-            print(f"  ✗ Failed: {e}")
+            print(f"Failed: {e}")
 
 
 def main():
     downloader = DatasetDownloader()
 
-    print("\n--- HuggingFace Datasets (10) ---\n")
+    print("\n--- HuggingFace Datasets (30) ---\n")
     #--
     downloader.download_huggingface_with_splits("imdb", has_splits=True)
     downloader.download_huggingface_with_splits("cornell-movie-review-data/rotten_tomatoes", has_splits=True)
@@ -226,26 +263,26 @@ def main():
     downloader.download_huggingface_with_splits("tweet_eval", config="emotion", has_splits=True)
     #--
     downloader.download_huggingface_with_splits("allenai/openbookqa",config= "additional",has_splits=True)
-    downloader.download_huggingface_with_splits("RogersPyke/robocoin_10K_20260121", has_splits=True)
+    # downloader.download_huggingface_with_splits("RogersPyke/robocoin_10K_20260121", has_splits=True)
     gc.collect()
     downloader.download_huggingface_with_splits("aps/super_glue", config="axb",has_splits=True)
     downloader.download_huggingface_with_splits("nyu-mll/glue", config="mnli_matched", has_splits=True)
     downloader.download_huggingface_with_splits("nyu-mll/glue", config="qnli", has_splits=True)
     gc.collect()
     downloader.download_huggingface_with_splits("baber/piqa", has_splits=True)
-    downloader.download_huggingface_with_splits("FDlalala/tranS", has_splits=True)
+    #downloader.download_huggingface_with_splits("FDlalala/tranS", has_splits=True)
     downloader.download_huggingface_with_splits("yairschiff/qm9", has_splits=True)
     gc.collect()
     downloader.download_huggingface_with_splits("MathArena/aime_2025", has_splits=True)
-    downloader.download_huggingface_with_splits("darius-tang/peg_in_hole", has_splits=True)
+    # downloader.download_huggingface_with_splits("darius-tang/peg_in_hole", has_splits=True)
     #--
-    downloader.download_huggingface_with_splits("oolongbench/oolong-synth",has_splits=True)
+    # downloader.download_huggingface_with_splits("oolongbench/oolong-synth",has_splits=True)
     gc.collect()
     downloader.download_huggingface_with_splits("OpenAssistant/oasst1", has_splits=True)
     downloader.download_huggingface_with_splits("josancamon/paperbench",has_splits=True)
     downloader.download_huggingface_with_splits("jaredfern/codah", config="codah", has_splits=True)
     gc.collect()
-    downloader.download_huggingface_with_splits("nlerobot/pusht", has_splits=True)
+    # downloader.download_huggingface_with_splits("nlerobot/pusht", has_splits=True)
     downloader.download_huggingface_with_splits("livebench/math", has_splits=True)
     downloader.download_huggingface_with_splits("zwhe99/amc23", has_splits=True)
     gc.collect()
@@ -255,7 +292,7 @@ def main():
     gc.collect()
     #--
     
-    print("\n--- OpenML Datasets (10) ---\n")
+    print("\n--- OpenML Datasets (30) ---\n")
     #--
     downloader.download_openml_with_split(31, "credit_g")
     downloader.download_openml_with_split(1590, "adult")
@@ -301,7 +338,7 @@ def main():
     gc.collect()
     #--
     
-    print("\n--- UCI Datasets (10) ---\n")
+    print("\n--- UCI Datasets (30) ---\n")
     #--
     downloader.download_uci_with_split(
         "https://archive.ics.uci.edu/static/public/53/iris.zip",
