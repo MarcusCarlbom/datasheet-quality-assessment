@@ -114,7 +114,7 @@ class DataQualityValidator:
             numeric_converted = pd.to_numeric(non_null, errors='coerce')
             numeric_ratio = numeric_converted.notna().sum() / len(non_null)
             
-            if numeric_ratio > 0.8:
+            if numeric_ratio>0.8:
                 lints.append(LintResult(
                     feature_name=col,
                     lint_type='number_as_string',

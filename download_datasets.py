@@ -32,11 +32,11 @@ class DatasetDownloader:
             if dataset_info.dataset_size:
                 size_gb = dataset_info.dataset_size / (1024**3)
                 if size_gb > max_size_gb:
-                    print(f"  ⚠ SKIPPED: Dataset too large ({size_gb:.2f} GB > {max_size_gb} GB limit)")
+                    print(f"SKIPPED: Dataset too large ({size_gb:.2f} GB > {max_size_gb} GB limit)")
                     return
-                print(f"  Dataset size: {size_gb:.2f} GB")
+                print(f"Dataset size: {size_gb:.2f} GB")
         except Exception as e:
-            print(f"  Warning: Could not check dataset size: {e}")
+            print(f"Warning: Could not check dataset size: {e}")
             # Continue anyway if size check fails
         
         if has_splits:
@@ -71,12 +71,12 @@ class DatasetDownloader:
                 del train_df, test_df
                 gc.collect()
                 
-                print(f"  ✓ Saved train ({train_size}) and test ({test_size})")
+                print(f"Saved train ({train_size}) and test ({test_size})")
                 
             except ValueError as e:
                 # Handle datasets with only one split or different split names
                 if "Bad split" in str(e) or "Unknown split" in str(e):
-                    print(f"  Note: Dataset doesn't have train/test splits, will create custom split")
+                    print(f"Note: Dataset doesn't have train/test splits, will create custom split")
                     self._download_and_split_hf(dataset_name, config, max_size_gb)
                 else:
                     raise
@@ -100,7 +100,7 @@ class DatasetDownloader:
             if dataset_info.dataset_size:
                 size_gb = dataset_info.dataset_size / (1024**3)
                 if size_gb > max_size_gb:
-                    print(f"  ⚠ SKIPPED: Dataset too large ({size_gb:.2f} GB > {max_size_gb} GB limit)")
+                    print(f"SKIPPED: Dataset too large ({size_gb:.2f} GB > {max_size_gb} GB limit)")
                     return
         except Exception:
             pass  # Continue if size check fails
@@ -237,16 +237,16 @@ class DatasetDownloader:
             test_df_size = len(test_df)
             
             del train_df, test_df
-            print(f"  ✓ Created splits: train ({train_df_size}), test ({test_df_size})")
+            print(f"Created splits: train ({train_df_size}), test ({test_df_size})")
             
         except Exception as e:
-            print(f"  ✗ Failed: {e}")
+            print(f"Failed: {e}")
 
 
 def main():
     downloader = DatasetDownloader()
 
-    print("\n--- HuggingFace Datasets (10) ---\n")
+    print("\n--- HuggingFace Datasets (30) ---\n")
     #--
     downloader.download_huggingface_with_splits("imdb", has_splits=True)
     downloader.download_huggingface_with_splits("cornell-movie-review-data/rotten_tomatoes", has_splits=True)
@@ -292,7 +292,7 @@ def main():
     gc.collect()
     #--
     
-    print("\n--- OpenML Datasets (10) ---\n")
+    print("\n--- OpenML Datasets (30) ---\n")
     #--
     downloader.download_openml_with_split(31, "credit_g")
     downloader.download_openml_with_split(1590, "adult")
@@ -338,7 +338,7 @@ def main():
     gc.collect()
     #--
     
-    print("\n--- UCI Datasets (10) ---\n")
+    print("\n--- UCI Datasets (30) ---\n")
     #--
     downloader.download_uci_with_split(
         "https://archive.ics.uci.edu/static/public/53/iris.zip",
