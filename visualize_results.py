@@ -363,7 +363,7 @@ def create_problem_prevalence_dashboard(df: pd.DataFrame, output_dir: str = "./v
     problem_cols = [col for col in PROBLEM_TYPES.keys() if col in df.columns]
     
     fig = plt.figure(figsize=(18, 10))
-    fig.suptitle('Problem Prevalence Across Repositories', fontsize=32, fontweight='bold')
+    fig.suptitle('Problem Prevalence Across Repositories', fontsize=40, fontweight='bold')
     
     ax = fig.add_subplot(111)
     
@@ -380,28 +380,26 @@ def create_problem_prevalence_dashboard(df: pd.DataFrame, output_dir: str = "./v
     
     sns.heatmap(heatmap_data, annot=True, fmt='.0f', cmap='YlOrRd',
                cbar_kws={'label': '% Affected', 'pad': 0.02}, linewidths=0.5, ax=ax,
-               vmin=0, vmax=100, annot_kws={'fontsize': 16})
+               vmin=0, vmax=100, annot_kws={'fontsize': 22})
     
-    ax.set_xlabel('Repository', fontsize=20, fontweight='bold')
-    ax.set_ylabel('Problem Type', fontsize=20, fontweight='bold')
+    ax.set_xlabel('Repository', fontsize=26, fontweight='bold')
+    ax.set_ylabel('Problem Type', fontsize=26, fontweight='bold')
     
     ylabels = [PROBLEM_TYPES.get(col, {}).get('title', col.replace('_', ' ').title()) 
                for col in active_cols]
-    ax.set_yticklabels(ylabels, rotation=0, fontsize=16)
-    ax.set_xticklabels(ax.get_xticklabels(), fontsize=16)
-    ax.tick_params(labelsize=16)
+    ax.set_yticklabels(ylabels, rotation=0, fontsize=22)
+    ax.set_xticklabels(ax.get_xticklabels(), fontsize=22)
+    ax.tick_params(labelsize=22)
     
-    # Make colorbar label bigger
     cbar = ax.collections[0].colorbar
-    cbar.ax.tick_params(labelsize=14)
-    cbar.set_label('% Affected', fontsize=18, fontweight='bold')
+    cbar.ax.tick_params(labelsize=20)
+    cbar.set_label('% Affected', fontsize=24, fontweight='bold')
 
     plt.tight_layout()
     
     output_file = output_path / "00-overview-problem-prevalence.png"
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
     plt.close()
-    
 
 def main():
     print("Generating visualizations...")
